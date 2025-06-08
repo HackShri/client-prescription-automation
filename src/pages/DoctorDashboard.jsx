@@ -9,7 +9,6 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Alert, AlertDescription } from '../components/ui/alert';
-//import SignaturePad from 'signature_pad'
 
 const socket = io('http://localhost:5000');
 
@@ -33,16 +32,13 @@ const DoctorDashboard = () => {
   const [signature, setSignature] = useState('');
   const recognitionRef = useRef(null);
   const sigCanvasRef = useRef(null);
-  //const padRef = useRef(null);
 
-  // Mock medication suggestions
   useEffect(() => {
     if (prescription.instructions) {
       setSuggestedMedications(['Paracetamol', 'Ibuprofen', 'Amoxicillin']);
     }
   }, [prescription.instructions]);
 
-  // Initialize Web Speech API
   useEffect(() => {
     if (window.SpeechRecognition || window.webkitSpeechRecognition) {
       recognitionRef.current = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
@@ -97,69 +93,6 @@ const DoctorDashboard = () => {
     setPrescription(prev => ({ ...prev, [name]: value }));
   };
 
-  useEffect(() => {
-    //const canvas = sigCanvasRef.current;
-    //if (!canvas) return;
-//
-    //let signaturePadInstance = null; // Rename for clarity
-    //const resizeCanvas = () => {
-    //  const ratio = Math.max(window.devicePixelRatio || 1, 1);
-    //  canvas.width = canvas.offsetWidth * ratio;
-    //  canvas.height = canvas.offsetHeight * ratio;
-    //  const context = canvas.getContext("2d");
-    //  if (context) {
-    //    context.scale(ratio, ratio);
-    //  }
-    //};
-//
-    //const initializePad = () => {
-    //  if (canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
-    //    resizeCanvas();
-    //    signaturePadInstance = new SignaturePad(canvas, { // Use the local variable
-    //      penColor: "black",
-    //      backgroundColor: "white",
-    //      onEnd: () => {
-    //        const dataURL = signaturePadInstance.toDataURL();
-    //        setSignature(dataURL);
-    //      },
-    //    });
-    //    padRef.current = signaturePadInstance; // Update the ref
-    //  }
-    //};
-//
-    //if (!padRef.current && canvas.offsetWidth === 0) {
-    //  const observer = new ResizeObserver(() => {
-    //    if (canvas.offsetWidth > 0) {
-    //      initializePad();
-    //      observer.disconnect();
-    //    }
-    //  });
-    //  observer.observe(canvas);
-    //} else if (!padRef.current && canvas.offsetWidth > 0) {
-    //  requestAnimationFrame(initializePad);
-    //}
-//
-//
-    //const handleResize = () => {
-    //  if (!padRef.current) return;
-    //  const data = padRef.current.toData();
-    //  resizeCanvas();
-    //  if (padRef.current) { // Double check before calling methods
-    //    padRef.current.clear();
-    //    padRef.current.fromData(data);
-    //  }
-    //};
-//
-    //window.addEventListener("resize", handleResize);
-//
-    return () => {
-      //window.removeEventListener("resize", handleResize);
-      //if (signaturePadInstance) { // Use the local variable to unbind
-      //  signaturePadInstance.off();
-      }
-    
-  }, []);
-
   const handleClearSignature = () => {
     if (sigCanvasRef.current) {
       sigCanvasRef.current.clear();
@@ -173,7 +106,6 @@ const DoctorDashboard = () => {
     }
   };
 
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -183,7 +115,6 @@ const DoctorDashboard = () => {
     }
     try {
       const token = localStorage.getItem('token');
-      //console.log('Token:', token);
       const user = JSON.parse(atob(token.split('.')[1]));
       const payload = {
         ...prescription,
@@ -195,13 +126,9 @@ const DoctorDashboard = () => {
         doctorSignature: signature,
       };
       const { data } = await axios.post('http://localhost:5000/api/prescriptions', payload, {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-      },
-      withCredentials: true,
-
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
-      // Emit to patient via Socket.IO
       socket.emit('sendPrescription', {
         patientId: data.patientId,
         prescription: { ...payload, _id: data._id },
@@ -422,7 +349,6 @@ const DoctorDashboard = () => {
             <p><strong>Expiration Date:</strong> {new Date(generatedPrescription.expiresAt).toLocaleDateString()}</p>
             <p><strong>Digital Signature:</strong></p>
             <img src={generatedPrescription.doctorSignature} alt="Doctor Signature" className="h-20" />
-            
             <div className="flex justify-center">
               <QRCode
                 value={JSON.stringify({
@@ -431,7 +357,6 @@ const DoctorDashboard = () => {
                 })}
                 size={200}
               />
-
             </div>
           </CardContent>
           <CardFooter>

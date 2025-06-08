@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import jsQR from 'jsqr';
 import axios from 'axios';
+import { QrCode } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Alert, AlertDescription } from '../components/ui/alert';
@@ -10,25 +11,29 @@ const Scanner = () => {
   const [error, setError] = useState('');
   const videoRef = useRef(null);
   const canvasRef = useRef(document.createElement('canvas'));
+  const [isScanning, setIsScanning] = useState(true);
 
   useEffect(() => {
+    let animationFrameId;
+
     const startScanner = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        if(videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-        scanQR();
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+          scanQR();
         }
       } catch (err) {
-        setError('Failed to access camera');
+        setError('Failed to access camera. Please grant permission or try another device.');
       }
     };
 
     const scanQR = () => {
+      if (!isScanning) return;
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
         canvas.height = video.videoHeight;
         canvas.width = video.videoWidth;
         const ctx = canvas.getContext('2d');
@@ -39,25 +44,27 @@ const Scanner = () => {
           try {
             const data = JSON.parse(code.data);
             fetchPrescription(data.prescriptionId);
+            setIsScanning(false); // Stop scanning after success
           } catch (err) {
-            setError('Invalid QR code');
+            setError('Invalid QR code format');
           }
         }
       }
-      requestAnimationFrame(scanQR);
+      animationFrameId = requestAnimationFrame(scanQR);
     };
 
     const delayScanner = setTimeout(() => {
-    startScanner();
-  }, 2000);
+      startScanner();
+    }, 2000);
 
     return () => {
       clearTimeout(delayScanner);
+      cancelAnimationFrame(animationFrameId);
       if (videoRef.current?.srcObject) {
         videoRef.current.srcObject.getTracks().forEach(track => track.stop());
       }
     };
-  }, []);
+  }, [isScanning]);
 
   const fetchPrescription = async (id) => {
     try {
@@ -67,8 +74,14 @@ const Scanner = () => {
       });
       setScannedPrescription(data);
     } catch (err) {
-      setError('Failed to fetch prescription');
+      setError(err.response?.data?.message || 'Failed to fetch prescription');
     }
+  };
+
+  const resetScanner = () => {
+    setScannedPrescription(null);
+    setError('');
+    setIsScanning(true);
   };
 
   return (
@@ -81,10 +94,13 @@ const Scanner = () => {
       )}
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle>Scan Prescription QR Code</CardTitle>
+          <CardTitle className="flex items-center space-x-2">
+            <QrCode className="w-6 h-6" />
+            <span>Scan Prescription QR Code</span>
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <video ref={videoRef} className="w-full" />
+          {isScanning && <video ref={videoRef} className="w-full rounded-md" />}
           {scannedPrescription && (
             <div className="mt-4 space-y-2">
               <p><strong>Patient Email:</strong> {scannedPrescription.patientEmail}</p>
@@ -94,6 +110,9 @@ const Scanner = () => {
               <p><strong>Expiration Date:</strong> {new Date(scannedPrescription.expiresAt).toLocaleDateString()}</p>
               <p><strong>Doctor Signature:</strong></p>
               <img src={scannedPrescription.doctorSignature} alt="Doctor Signature" className="h-20" />
+              <Button onClick={resetScanner} className="mt-4 w-full">
+                Scan Another
+              </Button>
             </div>
           )}
         </CardContent>

@@ -11,6 +11,9 @@ import AdminDashboard from './pages/AdminDashboard';
 import Scanner from './pages/Scanner';
 import Home from './components/Home';
 import "./index.css";
+import '@babel/polyfill';
+import 'regenerator-runtime/runtime';
+
 
 const AppContent = () => {
   const { user } = useContext(AuthContext);

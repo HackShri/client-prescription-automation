@@ -17,35 +17,66 @@ const Signup = () => {
     secretCode: '',
     age: '',
     weight: '',
-    height: ''
+    height: '',
+    photo: null,
   });
   const [error, setError] = useState('');
+  const [uploadMessage, setUploadMessage] = useState('');
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    if (e.target.name === 'photo') {
+      setForm({ ...form, photo: e.target.files[0] });
+    } else {
+      setForm({ ...form, [e.target.name]: e.target.value });
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setUploadMessage('');
+
     try {
-      const payload = { ...form };
+      const payload = {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        role: form.role,
+        secretCode: form.secretCode,
+      };
+
       if (form.role === 'patient') {
-        payload.age = parseInt(form.age);
-        payload.weight = parseFloat(form.weight);
-        payload.height = parseFloat(form.height);
-      } else {
-        delete payload.age;
-        delete payload.weight;
-        delete payload.height;
+        payload.age = parseInt(form.age) || undefined;
+        payload.weight = parseFloat(form.weight) || undefined;
+        payload.height = parseFloat(form.height) || undefined;
       }
+
       if (form.role === 'admin' && !form.secretCode) {
         throw new Error('Secret code is required for admin signup');
       }
+
+      // Complete signup
       const { data } = await axios.post('http://localhost:5000/api/auth/signup', payload);
-      login(data.token);
+      const token = data.token;
+      login(token);
+
+      // Upload photo if patient
+      if (form.role === 'patient' && form.photo) {
+        const formData = new FormData();
+        formData.append('photo', form.photo);
+        formData.append('email', form.email);
+
+        const uploadResponse = await axios.post('http://localhost:5000/api/auth/upload-photo', formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        setUploadMessage(uploadResponse.data.message);
+      }
+
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Signup failed');
@@ -112,18 +143,19 @@ const Signup = () => {
               </select>
             </div>
             {form.role === 'admin' && (
-              <div className='space-y-2'>
-                <Label hemlFor='secretCode'>Secret Code</Label>
+              <div className="space-y-2">
+                <Label htmlFor="secretCode">Secret Code</Label>
                 <Input
-                  id='secretCode'
-                  name='secretCode'
-                  type='text'
-                  placeholder='Enter secret code'
+                  id="secretCode"
+                  name="secretCode"
+                  type="text"
+                  placeholder="Enter secret code"
                   value={form.secretCode}
                   onChange={handleChange}
                   required
                 />
-                </div>)}
+              </div>
+            )}
             {form.role === 'patient' && (
               <>
                 <div className="space-y-2">
@@ -159,6 +191,17 @@ const Signup = () => {
                     onChange={handleChange}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="photo">Passport Photo</Label>
+                  <Input
+                    id="photo"
+                    name="photo"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleChange}
+                    className="input-style"
+                  />
+                </div>
               </>
             )}
             {error && (
@@ -166,7 +209,12 @@ const Signup = () => {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            <Button type="submit" className="w-full">
+            {uploadMessage && (
+              <Alert className={uploadMessage.includes('Error') ? 'border-destructive' : ''}>
+                <AlertDescription>{uploadMessage}</AlertDescription>
+              </Alert>
+            )}
+            <Button type="submit" className="w-full button-style">
               Sign Up
             </Button>
           </form>

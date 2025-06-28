@@ -2,13 +2,30 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { QRCode } from 'react-qr-code';
 import SignatureCanvas from 'react-signature-canvas';
-import { Mic } from 'lucide-react';
+import { 
+  Mic, 
+  MicOff, 
+  Plus, 
+  X, 
+  User, 
+  Pill, 
+  FileText, 
+  Calendar,
+  Clock,
+  CheckCircle,
+  AlertTriangle,
+  PenTool,
+  Send,
+  ArrowLeft,
+  Download
+} from 'lucide-react';
 import io from 'socket.io-client';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Alert, AlertDescription } from '../components/ui/alert';
+import Header from '../components/Header';
 
 const socket = io('http://localhost:5000');
 
@@ -30,12 +47,13 @@ const DoctorDashboard = () => {
   const [error, setError] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [signature, setSignature] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const recognitionRef = useRef(null);
   const sigCanvasRef = useRef(null);
 
   useEffect(() => {
     if (prescription.instructions) {
-      setSuggestedMedications(['Paracetamol', 'Ibuprofen', 'Amoxicillin']);
+      setSuggestedMedications(['Paracetamol', 'Ibuprofen', 'Amoxicillin', 'Omeprazole', 'Cetirizine']);
     }
   }, [prescription.instructions]);
 
@@ -109,10 +127,14 @@ const DoctorDashboard = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setIsSubmitting(true);
+    
     if (!signature) {
       setError('Please provide a digital signature');
+      setIsSubmitting(false);
       return;
     }
+    
     try {
       const token = localStorage.getItem('token');
       const user = JSON.parse(atob(token.split('.')[1]));
@@ -137,235 +159,396 @@ const DoctorDashboard = () => {
       setIsCreating(false);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to generate prescription');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  const generateQRValue = (prescription) => {
+    const shortId = prescription._id.slice(-8);
+    return `RX:${shortId}`;
+  };
+
+  const resetForm = () => {
+    setPrescription({
+      patientEmail: '',
+      instructions: '',
+      medications: [],
+      age: '',
+      weight: '',
+      height: '',
+      usageLimit: 1,
+      expiresAt: '',
+    });
+    setGeneratedPrescription(null);
+    setSignature('');
+    setError('');
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <h2 className="text-3xl font-bold mb-6 text-center">Doctor Dashboard</h2>
-      {!isCreating && !generatedPrescription && (
-        <Card className="w-full max-w-2xl mx-auto">
-          <CardHeader>
-            <CardTitle>Create Prescription</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => setIsCreating(true)} className="w-full">
-              Start New Prescription
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-      {isCreating && (
-        <Card className="w-full max-w-2xl mx-auto">
-          <CardHeader>
-            <CardTitle>New Prescription</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="patientEmail">Patient Email</Label>
-                <Input
-                  id="patientEmail"
-                  name="patientEmail"
-                  type="email"
-                  placeholder="patient@example.com"
-                  value={prescription.patientEmail}
-                  onChange={handleChange}
-                  required
-                />
+    <div className="min-h-screen gradient-secondary relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-20 left-20 w-72 h-72 bg-green-500/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-20 w-72 h-72 bg-blue-500/5 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
+      </div>
+
+      <Header />
+      
+      <main className="p-6 max-w-6xl mx-auto relative z-10">
+        <div className="text-center mb-8 slide-in-top">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent mb-2">
+            Doctor Dashboard
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            Create and manage digital prescriptions for your patients
+          </p>
+        </div>
+
+        {error && (
+          <div className="alert-error slide-in-top mb-6">
+            <AlertDescription className="flex items-center">
+              <AlertTriangle className="w-5 h-5 mr-2" />
+              {error}
+            </AlertDescription>
+          </div>
+        )}
+
+        {!isCreating && !generatedPrescription && (
+          <Card className="card-style w-full max-w-2xl mx-auto slide-in-bottom">
+            <CardHeader className="text-center">
+              <div className="mx-auto w-16 h-16 bg-gradient-to-r from-secondary to-primary rounded-full flex items-center justify-center mb-4">
+                <FileText className="w-8 h-8 text-white" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="instructions">Instructions</Label>
-                <div className="flex space-x-2">
-                  <Input
-                    id="instructions"
-                    name="instructions"
-                    placeholder="Enter instructions"
-                    value={prescription.instructions}
-                    onChange={handleChange}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={handleVoiceInput}
-                    disabled={isListening}
-                  >
-                    <Mic className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Medications</Label>
-                {suggestedMedications.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {suggestedMedications.map((med, index) => (
-                      <Button
-                        key={index}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleSelectSuggestion(med)}
-                      >
-                        {med}
-                      </Button>
-                    ))}
-                  </div>
-                )}
-                <div className="flex space-x-2">
-                  <Input
-                    placeholder="Add medication"
-                    value={medicationInput}
-                    onChange={(e) => setMedicationInput(e.target.value)}
-                  />
-                  <Button type="button" onClick={handleAddMedication}>
-                    +
-                  </Button>
-                </div>
-                <ul className="space-y-2 mt-2">
-                  {prescription.medications.map((med, index) => (
-                    <li key={index} className="flex justify-between items-center">
-                      <span>{med}</span>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleRemoveMedication(index)}
-                      >
-                        ×
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="age">Age</Label>
-                  <Input
-                    id="age"
-                    name="age"
-                    type="number"
-                    placeholder="Age"
-                    value={prescription.age}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="weight">Weight (kg)</Label>
-                  <Input
-                    id="weight"
-                    name="weight"
-                    type="number"
-                    placeholder="Weight"
-                    value={prescription.weight}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="height">Height (cm)</Label>
-                  <Input
-                    id="height"
-                    name="height"
-                    type="number"
-                    placeholder="Height"
-                    value={prescription.height}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="usageLimit">Usage Limit</Label>
-                <Input
-                  id="usageLimit"
-                  name="usageLimit"
-                  type="number"
-                  min="1"
-                  value={prescription.usageLimit}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="expiresAt">Expiration Date</Label>
-                <Input
-                  id="expiresAt"
-                  name="expiresAt"
-                  type="date"
-                  value={prescription.expiresAt}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Digital Signature</Label>
-                <SignatureCanvas
-                  ref={sigCanvasRef}
-                  penColor="black"
-                  backgroundColor="white"
-                  canvasProps={{
-                    className: "border rounded w-full h-32",
-                    style: { width: '100%', height: '128px', border: "1px solid #ccc", borderRadius: "6px" },
-                  }}
-                  onEnd={handleEndSignature}
-                />
-                <Button type="button" variant="outline" onClick={handleClearSignature}>
-                  Clear Signature
+              <CardTitle className="card-header-style">Create Prescription</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={() => setIsCreating(true)} 
+                className="w-full button-secondary h-12 text-lg"
+              >
+                Start New Prescription
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {isCreating && (
+          <Card className="card-style w-full max-w-4xl mx-auto slide-in-bottom">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="card-header-style">New Prescription</CardTitle>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsCreating(false)}
+                  className="flex items-center space-x-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back
                 </Button>
               </div>
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-              <Button type="submit" className="w-full">
-                Generate Prescription
-              </Button>
-            </form>
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" onClick={() => setIsCreating(false)} className="w-full">
-              Cancel
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
-      {generatedPrescription && (
-        <Card className="w-full max-w-2xl mx-auto">
-          <CardHeader>
-            <CardTitle>Generated Prescription</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p><strong>Patient Email:</strong> {generatedPrescription.patientEmail}</p>
-            <p><strong>Instructions:</strong> {generatedPrescription.instructions}</p>
-            <p><strong>Medications:</strong></p>
-            <ul className="list-disc pl-5">
-              {generatedPrescription.medications.map((med, index) => (
-                <li key={index}>{med}</li>
-              ))}
-            </ul>
-            <p><strong>Age:</strong> {generatedPrescription.age || 'N/A'}</p>
-            <p><strong>Weight:</strong> {generatedPrescription.weight || 'N/A'} kg</p>
-            <p><strong>Height:</strong> {generatedPrescription.height || 'N/A'} cm</p>
-            <p><strong>Usage Limit:</strong> {generatedPrescription.usageLimit}</p>
-            <p><strong>Expiration Date:</strong> {new Date(generatedPrescription.expiresAt).toLocaleDateString()}</p>
-            <p><strong>Digital Signature:</strong></p>
-            <img src={generatedPrescription.doctorSignature} alt="Doctor Signature" className="h-20" />
-            <div className="flex justify-center">
-              <QRCode
-                value={JSON.stringify({
-                  prescriptionId: generatedPrescription._id,
-                  patientEmail: generatedPrescription.patientEmail,
-                })}
-                size={200}
-              />
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button onClick={() => setGeneratedPrescription(null)} className="w-full">
-              Create Another
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="form-group">
+                    <Label htmlFor="patientEmail" className="form-label">
+                      <User className="w-4 h-4 inline mr-2" />
+                      Patient Email
+                    </Label>
+                    <Input
+                      id="patientEmail"
+                      name="patientEmail"
+                      type="email"
+                      placeholder="patient@example.com"
+                      value={prescription.patientEmail}
+                      onChange={handleChange}
+                      className="form-input"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="form-group">
+                    <Label htmlFor="expiresAt" className="form-label">
+                      <Calendar className="w-4 h-4 inline mr-2" />
+                      Expiration Date
+                    </Label>
+                    <Input
+                      id="expiresAt"
+                      name="expiresAt"
+                      type="date"
+                      value={prescription.expiresAt}
+                      onChange={handleChange}
+                      className="form-input"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <Label htmlFor="instructions" className="form-label">
+                    <FileText className="w-4 h-4 inline mr-2" />
+                    Instructions
+                  </Label>
+                  <div className="flex space-x-2">
+                    <Input
+                      id="instructions"
+                      name="instructions"
+                      placeholder="Enter prescription instructions..."
+                      value={prescription.instructions}
+                      onChange={handleChange}
+                      className="form-input flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={handleVoiceInput}
+                      disabled={isListening}
+                      className="w-12 h-12"
+                    >
+                      {isListening ? (
+                        <div className="relative">
+                          <Mic className="h-4 w-4 animate-pulse" />
+                          <div className="absolute inset-0 w-4 h-4 border-2 border-primary rounded-full animate-ping"></div>
+                        </div>
+                      ) : (
+                        <Mic className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <Label className="form-label">
+                    <Pill className="w-4 h-4 inline mr-2" />
+                    Medications
+                  </Label>
+                  {suggestedMedications.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {suggestedMedications.map((med, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => handleSelectSuggestion(med)}
+                          className="px-3 py-1 text-xs bg-green-100 hover:bg-green-200 text-green-800 rounded-full transition-colors duration-200 hover:scale-105"
+                        >
+                          {med}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex space-x-2">
+                    <Input
+                      placeholder="Add medication..."
+                      value={medicationInput}
+                      onChange={(e) => setMedicationInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddMedication())}
+                      className="form-input flex-1"
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleAddMedication}
+                      className="button-secondary px-4"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  {prescription.medications.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {prescription.medications.map((med, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center space-x-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full"
+                        >
+                          <span className="text-sm">{med}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMedication(index)}
+                            className="text-blue-500 hover:text-red-500 transition-colors duration-200"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="form-group">
+                    <Label htmlFor="age" className="form-label">Age</Label>
+                    <Input
+                      id="age"
+                      name="age"
+                      type="number"
+                      placeholder="Age"
+                      value={prescription.age}
+                      onChange={handleChange}
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <Label htmlFor="weight" className="form-label">Weight (kg)</Label>
+                    <Input
+                      id="weight"
+                      name="weight"
+                      type="number"
+                      placeholder="Weight"
+                      value={prescription.weight}
+                      onChange={handleChange}
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <Label htmlFor="height" className="form-label">Height (cm)</Label>
+                    <Input
+                      id="height"
+                      name="height"
+                      type="number"
+                      placeholder="Height"
+                      value={prescription.height}
+                      onChange={handleChange}
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <Label htmlFor="usageLimit" className="form-label">Usage Limit</Label>
+                    <Input
+                      id="usageLimit"
+                      name="usageLimit"
+                      type="number"
+                      placeholder="Limit"
+                      value={prescription.usageLimit}
+                      onChange={handleChange}
+                      className="form-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <Label className="form-label">
+                    <PenTool className="w-4 h-4 inline mr-2" />
+                    Digital Signature
+                  </Label>
+                  <div className="border-2 border-gray-200 rounded-lg p-4 bg-white">
+                    <SignatureCanvas
+                      ref={sigCanvasRef}
+                      canvasProps={{
+                        className: 'w-full h-32 border border-gray-300 rounded'
+                      }}
+                      onEnd={handleEndSignature}
+                    />
+                    <div className="flex space-x-2 mt-2">
+                      <Button
+                        type="button"
+                        onClick={handleClearSignature}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full button-secondary h-12 text-lg"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center justify-center">
+                      <div className="loading-spinner w-5 h-5 mr-2"></div>
+                      Creating Prescription...
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center">
+                      <Send className="w-5 h-5 mr-2" />
+                      Generate Prescription
+                    </div>
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        )}
+
+        {generatedPrescription && (
+          <Card className="card-style w-full max-w-4xl mx-auto slide-in-bottom">
+            <CardHeader className="text-center">
+              <div className="mx-auto w-16 h-16 bg-gradient-to-r from-success to-success-foreground rounded-full flex items-center justify-center mb-4">
+                <CheckCircle className="w-8 h-8 text-white" />
+              </div>
+              <CardTitle className="card-header-style">Prescription Generated Successfully!</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-2">Patient Information</h3>
+                    <p className="text-sm text-muted-foreground">Email: {generatedPrescription.patientEmail}</p>
+                    <p className="text-sm text-muted-foreground">Age: {generatedPrescription.age}</p>
+                    <p className="text-sm text-muted-foreground">Weight: {generatedPrescription.weight} kg</p>
+                    <p className="text-sm text-muted-foreground">Height: {generatedPrescription.height} cm</p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-2">Prescription Details</h3>
+                    <p className="text-sm text-muted-foreground">Instructions: {generatedPrescription.instructions}</p>
+                    <p className="text-sm text-muted-foreground">Medications: {generatedPrescription.medications.join(', ')}</p>
+                    <p className="text-sm text-muted-foreground">Usage Limit: {generatedPrescription.usageLimit}</p>
+                    <p className="text-sm text-muted-foreground">Expires: {new Date(generatedPrescription.expiresAt).toLocaleDateString()}</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-2">Doctor Signature</h3>
+                    <img 
+                      src={generatedPrescription.doctorSignature} 
+                      alt="Doctor Signature" 
+                      className="h-32 border rounded-lg"
+                    />
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-2">QR Code</h3>
+                    <div className="flex justify-center">
+                      <div className="bg-white p-4 rounded-lg shadow-lg">
+                        <QRCode
+                          value={generateQRValue(generatedPrescription)}
+                          size={150}
+                          level="M"
+                          includeMargin={true}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex space-x-4">
+                <Button 
+                  onClick={resetForm} 
+                  className="flex-1 button-style"
+                >
+                  Create Another Prescription
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => window.print()}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Print Prescription
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </main>
     </div>
   );
 };

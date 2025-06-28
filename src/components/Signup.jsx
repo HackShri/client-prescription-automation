@@ -1,7 +1,6 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext.jsx';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -9,220 +8,172 @@ import { Label } from './ui/label';
 import { Alert, AlertDescription } from './ui/alert';
 
 const Signup = () => {
-  const [form, setForm] = useState({
+  const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    role: 'patient',
-    secretCode: '',
-    age: '',
-    weight: '',
-    height: '',
-    photo: null,
+    confirmPassword: '',
+    role: 'patient'
   });
   const [error, setError] = useState('');
-  const [uploadMessage, setUploadMessage] = useState('');
-  const { login } = useContext(AuthContext);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    if (e.target.name === 'photo') {
-      setForm({ ...form, photo: e.target.files[0] });
-    } else {
-      setForm({ ...form, [e.target.name]: e.target.value });
-    }
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setUploadMessage('');
-
+    
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    
+    setIsLoading(true);
     try {
-      const payload = {
-        name: form.name,
-        email: form.email,
-        password: form.password,
-        role: form.role,
-        secretCode: form.secretCode,
-      };
-
-      if (form.role === 'patient') {
-        payload.age = parseInt(form.age) || undefined;
-        payload.weight = parseFloat(form.weight) || undefined;
-        payload.height = parseFloat(form.height) || undefined;
-      }
-
-      if (form.role === 'admin' && !form.secretCode) {
-        throw new Error('Secret code is required for admin signup');
-      }
-
-      // Complete signup
-      const { data } = await axios.post('http://localhost:5000/api/auth/signup', payload);
-      const token = data.token;
-      login(token);
-
-      // Upload photo if patient
-      if (form.role === 'patient' && form.photo) {
-        const formData = new FormData();
-        formData.append('photo', form.photo);
-        formData.append('email', form.email);
-
-        const uploadResponse = await axios.post('http://localhost:5000/api/auth/upload-photo', formData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-        setUploadMessage(uploadResponse.data.message);
-      }
-
-      navigate('/dashboard');
+      const { data } = await axios.post('http://localhost:5000/api/auth/signup', {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role
+      });
+      navigate('/login');
     } catch (err) {
       setError(err.response?.data?.message || 'Signup failed');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
-          <CardDescription>Sign up to manage your prescriptions</CardDescription>
+    <div className="min-h-screen gradient-secondary flex items-center justify-center px-4 py-12 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-green-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
+      </div>
+
+      <Card className="w-full max-w-md glass slide-in-bottom relative z-10">
+        <CardHeader className="text-center">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mb-4 scale-in">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+          </div>
+          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-green-500 to-blue-500 bg-clip-text text-transparent">
+            Create Account
+          </CardTitle>
+          <CardDescription className="text-lg mt-2">
+            Join us to manage your prescriptions securely
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="form-group">
+              <Label htmlFor="name" className="form-label">Full Name</Label>
               <Input
                 id="name"
                 name="name"
                 type="text"
                 placeholder="John Doe"
-                value={form.name}
+                value={formData.name}
                 onChange={handleChange}
+                className="form-input"
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+            <div className="form-group">
+              <Label htmlFor="email" className="form-label">Email Address</Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
-                placeholder="john@example.com"
-                value={form.email}
+                placeholder="you@example.com"
+                value={formData.email}
                 onChange={handleChange}
+                className="form-input"
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+            <div className="form-group">
+              <Label htmlFor="password" className="form-label">Password</Label>
               <Input
                 id="password"
                 name="password"
                 type="password"
-                value={form.password}
+                placeholder="Create a strong password"
+                value={formData.password}
                 onChange={handleChange}
+                className="form-input"
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
+            <div className="form-group">
+              <Label htmlFor="confirmPassword" className="form-label">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                placeholder="Confirm your password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className="form-input"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <Label htmlFor="role" className="form-label">Role</Label>
               <select
                 id="role"
                 name="role"
-                value={form.role}
+                value={formData.role}
                 onChange={handleChange}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="form-input"
+                required
               >
                 <option value="patient">Patient</option>
                 <option value="doctor">Doctor</option>
-                <option value="shop">Medical Shop Owner</option>
+                <option value="pharmacist">Pharmacist</option>
                 <option value="admin">Admin</option>
               </select>
             </div>
-            {form.role === 'admin' && (
-              <div className="space-y-2">
-                <Label htmlFor="secretCode">Secret Code</Label>
-                <Input
-                  id="secretCode"
-                  name="secretCode"
-                  type="text"
-                  placeholder="Enter secret code"
-                  value={form.secretCode}
-                  onChange={handleChange}
-                  required
-                />
+            {error && (
+              <div className="alert-error slide-in-top">
+                <AlertDescription className="flex items-center">
+                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {error}
+                </AlertDescription>
               </div>
             )}
-            {form.role === 'patient' && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="age">Age</Label>
-                  <Input
-                    id="age"
-                    name="age"
-                    type="number"
-                    placeholder="Age"
-                    value={form.age}
-                    onChange={handleChange}
-                  />
+            <Button 
+              type="submit" 
+              className="w-full button-secondary h-12 text-lg"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <div className="flex items-center justify-center">
+                  <div className="loading-spinner w-5 h-5 mr-2"></div>
+                  Creating account...
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="weight">Weight (kg)</Label>
-                  <Input
-                    id="weight"
-                    name="weight"
-                    type="number"
-                    placeholder="Weight"
-                    value={form.weight}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="height">Height (cm)</Label>
-                  <Input
-                    id="height"
-                    name="height"
-                    type="number"
-                    placeholder="Height"
-                    value={form.height}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="photo">Passport Photo</Label>
-                  <Input
-                    id="photo"
-                    name="photo"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleChange}
-                    className="input-style"
-                  />
-                </div>
-              </>
-            )}
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            {uploadMessage && (
-              <Alert className={uploadMessage.includes('Error') ? 'border-destructive' : ''}>
-                <AlertDescription>{uploadMessage}</AlertDescription>
-              </Alert>
-            )}
-            <Button type="submit" className="w-full button-style">
-              Sign Up
+              ) : (
+                'Create Account'
+              )}
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex justify-center">
-          <a href="/login" className="text-sm text-primary hover:underline">
-            Already have an account? Login
-          </a>
+        <CardFooter className="flex flex-col space-y-4">
+          <div className="text-center">
+            <span className="text-sm text-gray-600">Already have an account? </span>
+            <a href="/login" className="text-sm text-green-500 hover:text-green-600 transition-colors duration-200 hover:underline font-semibold">
+              Sign In
+            </a>
+          </div>
         </CardFooter>
       </Card>
     </div>

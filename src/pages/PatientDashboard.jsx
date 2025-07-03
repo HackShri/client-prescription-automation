@@ -32,6 +32,7 @@ const PatientDashboard = () => {
   const [notification, setNotification] = useState('');
   const [showVoiceAssistant, setShowVoiceAssistant] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showPillModal, setShowPillModal] = useState(false);
 
   const {
     transcript,
@@ -104,6 +105,27 @@ const PatientDashboard = () => {
     }
   };
 
+  // Modal for Pill Timeline
+  const PillTimelineModal = ({ open, onClose }) => (
+    open ? (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 relative animate-fade-in">
+          <button
+            className="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-2xl font-bold focus:outline-none"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <X />
+          </button>
+          <div className="p-6">
+            <h2 className="text-2xl font-bold mb-4 text-center">Pill Timeline</h2>
+            <PillTimeline />
+          </div>
+        </div>
+      </div>
+    ) : null
+  );
+
   return (
     <div className="min-h-screen gradient-primary relative overflow-hidden">
       {/* Animated background elements */}
@@ -113,8 +135,7 @@ const PatientDashboard = () => {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-green-500/5 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
       </div>
 
-      
-      
+      <Navbar />
       <main className="p-6 max-w-6xl mx-auto relative z-10">
         <div className="text-center mb-8 slide-in-top">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-2">
@@ -143,14 +164,28 @@ const PatientDashboard = () => {
           </div>
         )}
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Quick Actions Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
           <Card className="card-style hover:scale-105 transition-all duration-300 slide-in-bottom" style={{animationDelay: '0.1s'}}>
             <CardHeader className="text-center">
-              <div className="mx-auto w-12 h-12 bg-gradient-to-r from-primary to-primary-hover rounded-lg flex items-center justify-center mb-4">
-                <MessageCircle className="w-6 h-6 text-white" />
+              <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                <Pill className="w-7 h-7 text-blue-500" />
               </div>
-              <CardTitle className="card-header-style">AI Assistant</CardTitle>
+              <CardTitle className="card-header-style">Pill Timeline</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full button-style" onClick={() => setShowPillModal(true)}>
+                Open Pill Timeline
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="card-style hover:scale-105 transition-all duration-300 slide-in-bottom" style={{animationDelay: '0.2s'}}>
+            <CardHeader className="text-center">
+              <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                <MessageCircle className="w-7 h-7 text-blue-500" />
+              </div>
+              <CardTitle className="card-header-style">Pharma AI</CardTitle>
             </CardHeader>
             <CardContent>
               <Button asChild className="w-full button-style">
@@ -159,10 +194,10 @@ const PatientDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="card-style hover:scale-105 transition-all duration-300 slide-in-bottom" style={{animationDelay: '0.2s'}}>
+          <Card className="card-style hover:scale-105 transition-all duration-300 slide-in-bottom" style={{animationDelay: '0.3s'}}>
             <CardHeader className="text-center">
-              <div className="mx-auto w-12 h-12 bg-gradient-to-r from-secondary to-secondary-hover rounded-lg flex items-center justify-center mb-4">
-                <QrCode className="w-6 h-6 text-white" />
+              <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                <QrCode className="w-7 h-7 text-blue-500" />
               </div>
               <CardTitle className="card-header-style">QR Scanner</CardTitle>
             </CardHeader>
@@ -173,25 +208,11 @@ const PatientDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="card-style hover:scale-105 transition-all duration-300 slide-in-bottom" style={{animationDelay: '0.3s'}}>
-            <CardHeader className="text-center">
-              <div className="mx-auto w-12 h-12 bg-gradient-to-r from-accent to-accent-hover rounded-lg flex items-center justify-center mb-4">
-                <Mic className="w-6 h-6 text-white" />
-              </div>
-              <CardTitle className="card-header-style">Voice Assistant</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={handleVoiceCommand} className="w-full button-accent">
-                Start Voice Command
-              </Button>
-            </CardContent>
-          </Card>
+          {/* Add more cards as needed for Appointments, Emergency, Health Shorts, etc. */}
         </div>
 
-        {/* Pill Timeline */}
-        <div className="mb-8 slide-in-bottom" style={{animationDelay: '0.4s'}}>
-          <PillTimeline />
-        </div>
+        {/* Pill Timeline Modal */}
+        <PillTimelineModal open={showPillModal} onClose={() => setShowPillModal(false)} />
 
         {/* Prescriptions */}
         <div className="space-y-6">

@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import AuthProvider, { AuthContext } from './context/AuthContext.jsx';
-import Header from './components/Header';
+import Navbar from './components/Header';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import DoctorDashboard from './pages/DoctorDashboard';
@@ -20,7 +20,7 @@ const AppContent = () => {
   return (
     <Router>
       <div className="min-h-screen bg-gray-100">
-        {user && <Header />}
+        {user && <Navbar />}
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={!user ? <Login /> : <Navigate to="/dashboard" />} />

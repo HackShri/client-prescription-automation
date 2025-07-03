@@ -6,7 +6,7 @@ import io from 'socket.io-client';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Button } from '../components/ui/button';
-import Header from '../components/Header';
+import Navbar from '../components/Header';
 import PillTimeline from '../components/PillTimeline';
 import useSpeechRecognition from '../hooks/useSpeechRecognition.jsx';
 import { 

@@ -9,7 +9,7 @@ import { Label } from './ui/label';
 import { Alert, AlertDescription } from './ui/alert';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [emailOrMobile, setEmailOrMobile] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -21,7 +21,10 @@ const Login = () => {
     setError('');
     setIsLoading(true);
     try {
-      const { data } = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+      const { data } = await axios.post('http://localhost:5000/api/auth/login', { 
+        emailOrMobile, 
+        password 
+      });
       login(data.token);
       navigate('/dashboard');
     } catch (err) {
@@ -57,13 +60,13 @@ const Login = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="form-group">
-              <Label htmlFor="email" className="form-label">Email Address</Label>
+              <Label htmlFor="emailOrMobile" className="form-label">Email or Mobile Number</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="emailOrMobile"
+                type="text"
+                placeholder="Enter your email or mobile number"
+                value={emailOrMobile}
+                onChange={(e) => setEmailOrMobile(e.target.value)}
                 className="form-input"
                 required
               />

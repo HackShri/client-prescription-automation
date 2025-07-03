@@ -11,10 +11,12 @@ const Signup = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    mobile: '',
     password: '',
     confirmPassword: '',
     role: 'patient'
   });
+  const [contactMethod, setContactMethod] = useState('email'); // 'email' or 'mobile'
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -31,12 +33,23 @@ const Signup = () => {
       setError('Passwords do not match');
       return;
     }
+
+    // Validate that the selected contact method is provided
+    if (contactMethod === 'email' && !formData.email) {
+      setError('Email is required');
+      return;
+    }
+    if (contactMethod === 'mobile' && !formData.mobile) {
+      setError('Mobile number is required');
+      return;
+    }
     
     setIsLoading(true);
     try {
       const { data } = await axios.post('http://localhost:5000/api/auth/signup', {
         name: formData.name,
-        email: formData.email,
+        email: contactMethod === 'email' ? formData.email : null,
+        mobile: contactMethod === 'mobile' ? formData.mobile : null,
         password: formData.password,
         role: formData.role
       });
@@ -86,19 +99,67 @@ const Signup = () => {
                 required
               />
             </div>
+
+            {/* Contact Method Selection */}
             <div className="form-group">
-              <Label htmlFor="email" className="form-label">Email Address</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="you@example.com"
-                value={formData.email}
-                onChange={handleChange}
-                className="form-input"
-                required
-              />
+              <Label className="form-label">Contact Method</Label>
+              <div className="flex space-x-4 mt-2">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="contactMethod"
+                    value="email"
+                    checked={contactMethod === 'email'}
+                    onChange={(e) => setContactMethod(e.target.value)}
+                    className="text-blue-500"
+                  />
+                  <span className="text-sm">Email</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="contactMethod"
+                    value="mobile"
+                    checked={contactMethod === 'mobile'}
+                    onChange={(e) => setContactMethod(e.target.value)}
+                    className="text-blue-500"
+                  />
+                  <span className="text-sm">Mobile Number</span>
+                </label>
+              </div>
             </div>
+
+            {/* Conditional Contact Input */}
+            {contactMethod === 'email' ? (
+              <div className="form-group">
+                <Label htmlFor="email" className="form-label">Email Address</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="form-input"
+                  required
+                />
+              </div>
+            ) : (
+              <div className="form-group">
+                <Label htmlFor="mobile" className="form-label">Mobile Number</Label>
+                <Input
+                  id="mobile"
+                  name="mobile"
+                  type="tel"
+                  placeholder="+1234567890"
+                  value={formData.mobile}
+                  onChange={handleChange}
+                  className="form-input"
+                  required
+                />
+              </div>
+            )}
+
             <div className="form-group">
               <Label htmlFor="password" className="form-label">Password</Label>
               <Input

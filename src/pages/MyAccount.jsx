@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Button } from '../components/ui/button';
-import Header from '../components/Header';
+import Navbar from '../components/Header';
 
 const MyAccount = () => {
   const [user, setUser] = useState(null);
@@ -29,7 +29,7 @@ const MyAccount = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      <Navbar />
       <main className="p-6 max-w-4xl mx-auto">
         <h2 className="text-3xl font-bold mb-6">My Account</h2>
         <div className="bg-white p-6 rounded-lg shadow-md">

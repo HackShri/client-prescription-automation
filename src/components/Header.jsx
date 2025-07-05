@@ -92,12 +92,7 @@ const Navbar = () => {
           href: '/dashboard',
           show: true
         },
-        {
-          icon: <Pill className="h-5 w-5" />,
-          label: 'Pill Schedule',
-          href: '/pill-timeline',
-          show: user.role === 'patient'
-        },
+
         {
           icon: <MessageCircle className="h-5 w-5" />,
           label: 'AI Assistant',

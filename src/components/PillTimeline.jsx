@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Plus, Check, Clock } from 'lucide-react';
 import { Button } from './ui/button';
@@ -11,6 +11,8 @@ const PillTimeline = () => {
   const [pillName, setPillName] = useState('');
   const [pillTime, setPillTime] = useState('');
   const [pills, setPills] = useState([]);
+  const [successMessage, setSuccessMessage] = useState('');
+  const modalRef = useRef(null);
 
   useEffect(() => {
     const fetchSchedule = async () => {
@@ -27,6 +29,25 @@ const PillTimeline = () => {
     fetchSchedule();
   }, [selectedDate]);
 
+  // Handle click outside modal
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        setShowAddPill(false);
+        setPillName('');
+        setPillTime('');
+      }
+    };
+
+    if (showAddPill) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showAddPill]);
+
   const addPill = async () => {
     if (!pillName || !pillTime) return;
     try {
@@ -40,6 +61,8 @@ const PillTimeline = () => {
       setPillName('');
       setPillTime('');
       setShowAddPill(false);
+      setSuccessMessage(`${pillName} scheduled for ${pillTime}`);
+      setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
       console.error('Error adding pill:', error);
     }
@@ -61,8 +84,21 @@ const PillTimeline = () => {
 
   return (
     <div className="p-2">
+      {successMessage && (
+        <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+          {successMessage}
+        </div>
+      )}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">{new Date(selectedDate).toLocaleDateString()}</h3>
+        <div className="flex items-center space-x-3">
+          <h3 className="text-lg font-semibold">Pill Schedule</h3>
+          <Input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="w-auto"
+          />
+        </div>
         <Button onClick={() => setShowAddPill(true)} size="icon" className="bg-blue-600 hover:bg-blue-700">
           <Plus className="w-4 h-4" />
         </Button>
@@ -93,27 +129,49 @@ const PillTimeline = () => {
       )}
       {showAddPill && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <Card className="max-w-sm w-full">
-            <CardHeader>
-              <CardTitle>Add New Pill</CardTitle>
+          <Card ref={modalRef} className="max-w-sm w-full bg-white shadow-2xl">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl font-bold text-gray-900">Add New Pill</CardTitle>
+              <p className="text-sm text-gray-600">Schedule a medication for {new Date(selectedDate).toLocaleDateString()}</p>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Input
-                value={pillName}
-                onChange={(e) => setPillName(e.target.value)}
-                placeholder="Medicine Name"
-              />
-              <Input
-                type="time"
-                value={pillTime}
-                onChange={(e) => setPillTime(e.target.value)}
-              />
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Medicine Name</label>
+                <Input
+                  value={pillName}
+                  onChange={(e) => setPillName(e.target.value)}
+                  placeholder="Enter medicine name"
+                  className="w-full"
+                  onKeyPress={(e) => e.key === 'Enter' && addPill()}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Time to Take</label>
+                <Input
+                  type="time"
+                  value={pillTime}
+                  onChange={(e) => setPillTime(e.target.value)}
+                  className="w-full"
+                />
+              </div>
             </CardContent>
-            <div className="flex space-x-3 p-4">
-              <Button onClick={addPill} className="flex-1 bg-blue-600 hover:bg-blue-700">
-                Save
+            <div className="flex space-x-3 p-4 pt-0">
+              <Button 
+                onClick={addPill} 
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={!pillName || !pillTime}
+              >
+                Save Pill
               </Button>
-              <Button onClick={() => setShowAddPill(false)} variant="outline" className="flex-1">
+              <Button 
+                onClick={() => {
+                  setShowAddPill(false);
+                  setPillName('');
+                  setPillTime('');
+                }} 
+                variant="outline" 
+                className="flex-1"
+              >
                 Cancel
               </Button>
             </div>
